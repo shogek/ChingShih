@@ -1,0 +1,50 @@
+/* BROWSER STYLE RESETS */
+html,
+body,
+#game-area,
+#player-grid,
+#enemy-grid {
+   height: 100%;
+   width: 100%;
+}
+
+body {
+   margin: 0;
+}
+/* END OF BROWSER STYLE RESETS */
+
+#game-area {
+   display: flex;
+}
+@media only screen and (max-device-width: 768px) {
+   #game-area {
+      flex-direction: column;
+   }
+}
+
+
+#player-grid,
+#enemy-grid {
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+   gap: 4px
+}
+
+.row {
+   display: flex;
+   gap: 4px;
+}
+
+.cell {
+   border: 1px solid black;
+   height: 50px;
+   width: 50px;
+}
+@media only screen and (max-device-width: 768px) {
+   .cell {
+      height: 20px;
+      width: 20px;
+   }
+}
