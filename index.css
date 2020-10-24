@@ -48,3 +48,11 @@ body {
       width: 20px;
    }
 }
+
+.cell.placeholder {
+   background-color: gray;
+}
+
+.cell.ship {
+   background-color: tomato;
+}
