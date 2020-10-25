@@ -1,2 +1,8 @@
-const gameController = new globalThis.ChingShih.GameController();
-gameController.init();
+(() => {
+
+   const { GameManager } = globalThis.ChingShih;
+
+   const gameManager = new GameManager();
+   gameManager.init();
+
+})();

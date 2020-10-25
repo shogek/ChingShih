@@ -4,8 +4,7 @@ Let's see if I can still write pure JS.
 
 | No. | Ship class | Size |
 | --: | ---------- | ---: |
-|  1  | Carrier    |   5  |
-|  2  | Battleship |   4  |
-|  3  | Destroyer  |   3  |
-|  4  | Submarine  |   3  |
-|  5  | Patrol     |   2  |
+|  1  | Battleship |   4  |
+|  2  | Destroyer  |   3  |
+|  3  | Submarine  |   2  |
+|  4  | Patrol     |   1  |
