@@ -115,8 +115,10 @@ document.ChingShih.ShipManager = (() => {
          // Load the ships
          for (const shipConfiguration of shipConfigurations) {
             const { name, size, count } = shipConfiguration;
-            const ship = new Ship(name, size, count);
-            this._ships.push(ship);
+            [...new Array(count)].forEach(() => {
+               const ship = new Ship(name, size);
+               this._ships.push(ship);
+            });
          }
       }
    }
