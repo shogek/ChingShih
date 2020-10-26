@@ -1,4 +1,4 @@
-globalThis.ChingShih.GameStates = (() => {
+document.ChingShih.GameStates = (() => {
 
    return class GameStates {
       static NOT_INITIALISED = 'The game has not been initialised';

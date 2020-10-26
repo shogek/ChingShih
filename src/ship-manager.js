@@ -1,6 +1,16 @@
-globalThis.ChingShih.ShipManager = (() => {
+document.ChingShih.ShipManager = (() => {
 
-   class ShipManager {
+   const {
+      Ship,
+      config: {
+         shipConfigurations,
+      },
+      helpers: {
+         takeFirst,
+      },
+   } = document.ChingShih
+
+   return class ShipManager {
       /**
        * Represents a playing side's grid.
        * [KEY] = cellID, [VAL] = cell$
@@ -8,12 +18,15 @@ globalThis.ChingShih.ShipManager = (() => {
        */
       _grid = new Map();
    
-      /**
-       * Stores ship's placeholder cells when the player is choosing a location for his ship. 
-       * @type {HTMLDivElement[]}
-       */
+      /** Stores ship's placeholder cells when the player is choosing a location for his ship. 
+       * @type {HTMLDivElement[]} */
       _placeholderShip = [];
    
+      /** Stores all the playing side's ships.
+       * @type {Ship[]} */
+      _ships = [];
+
+
       /**
        * Parse a cell's ID to extract row and col.
        * @param {HTMLDivElement} cell$
@@ -39,28 +52,27 @@ globalThis.ChingShih.ShipManager = (() => {
    
       /** Updates the DOM to display the current ship's outline as a set and saved ship. */
       placeShip() {
-         while (this._placeholder.length > 0) {
-            const placeholderCell$ = this._placeholder.pop();
-            placeholderCell$.classList.remove('placeholder');
-            placeholderCell$.classList.add('ship');
-            setTimeout(null, 0);
-         }
+         const ship = takeFirst(this._ships, s => s.isPlaceholder);
+         ship?.markAsPlaced();
       }
-   
+
+      areAllShipsPlaced() {
+         return this._ships.filter(s => !s.isPlaced).length < 1;
+      }
+
       /**
        * Updates the DOM to display a ship's outline for placement.
        * @param {string} cellId The reference point (ex.: cell, which was hovered over).
        */
       addShipPlaceholder(cellId) {
+         const ship = takeFirst(this._ships, s => !s.isPlaced);
+         let cellsToPlace = ship.size;
+
          const cell$ = this._grid.get(cellId);
          const [row, col] = this._getCellCoordinates(cell$);
-   
-         let cellsToPlace = 5;
          
-         let placeholderCell$ = null;
-         placeholderCell$ = this._getCell(row, col);
-         placeholderCell$.classList.add('placeholder');
-         this._placeholderShip.push(placeholderCell$);
+         const placeholderCells$ = [];
+         placeholderCells$.push(this._getCell(row, col));
          cellsToPlace--;
          
          let fromRight = 1;
@@ -76,24 +88,22 @@ globalThis.ChingShih.ShipManager = (() => {
                fromRight++;
             }
    
-            placeholderCell$.classList.add('placeholder');
-            setTimeout(() => {}, 0);
-            this._placeholderShip.push(placeholderCell$);
-   
+            placeholderCells$.push(placeholderCell$);
             cellsToPlace--;
          }
+
+         ship.setCells(placeholderCells$);
+         ship.markAsPlaceholder();
       }
    
       /** Updates the DOM to remove the currently shown ship's outline for placement. */
       removeShipPlaceholder() {
-         while (this._placeholderShip.length) {
-            const cell$ = this._placeholderShip.pop();
-            cell$.classList.remove('placeholder');
-            setTimeout(() => {}, 0);
-         }
+         const ship = takeFirst(this._ships, s => s.isPlaceholder);
+         ship?.unmarkAsPlaceholder();
       }
    
       init() {
+         // Create a Map for each cell$
          for (let row = 1; row <= 10; row++) {
             for (let col = 1; col <= 10; col++) {
                const cellId = `player-${row}-${col}`;
@@ -101,9 +111,14 @@ globalThis.ChingShih.ShipManager = (() => {
                this._grid.set(cellId, cell$);
             }
          }
+
+         // Load the ships
+         for (const shipConfiguration of shipConfigurations) {
+            const { name, size, count } = shipConfiguration;
+            const ship = new Ship(name, size, count);
+            this._ships.push(ship);
+         }
       }
    }
-
-   return ShipManager;
 
 })();
