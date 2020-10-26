@@ -3,8 +3,6 @@ document.ChingShih.Ship = (() => {
    return class Ship {
       /** Ship's class (ex.: 'Submarine'). */
       name = '';
-      /** How many times this ship can be placed. */
-      count = -1;
       /** Number of squares the ship takes. */
       size = -1;
       /** Has the ship been placed in the DOM? */
@@ -20,12 +18,10 @@ document.ChingShih.Ship = (() => {
       /**
        * @param {string} name Ship's class (ex.: 'Submarine')
        * @param {number} size Number of squares the ship takes
-       * @param {number} count How many times this ship can be placed
        */
-      constructor(name, size, count) {
+      constructor(name, size) {
          this.name = name;
          this.size = size;
-         this.count = count;
       }
 
       setCells(cells$) {
