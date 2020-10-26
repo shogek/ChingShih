@@ -278,10 +278,18 @@
       </div>
    </div>
 
-   <script>globalThis.ChingShih = {};</script>
+   <script>
+      document.ChingShih = {};
+      document.ChingShih.config = {};
+      document.ChingShih.helpers = {};
+   </script>
+   <script defer src="./src/helpers/array.helper.js"></script>
+   <script defer src="./src/config/ship-configurations.js"></script>
+   <script defer src="./src/ship.js"></script>
+   <script defer src="./src/ship-manager.js"></script>
    <script defer src="./src/player-states.enum.js"></script>
    <script defer src="./src/game-states.enum.js"></script>
-   <script defer src="./src/game-controller.js"></script>
+   <script defer src="./src/game-manager.js"></script>
    <script defer src="./index.js"></script>
 </body>
 </html>
