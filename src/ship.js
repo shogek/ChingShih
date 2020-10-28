@@ -24,8 +24,11 @@ document.ChingShih.Ship = (() => {
          this.size = size;
       }
 
-      setCells(cells$) {
+      setCells$(cells$) {
          this._cells$ = cells$;
+      }
+      getCells$() {
+         return this._cells$;
       }
 
       /** Updates the DOM to display a ship's outline for placement. */

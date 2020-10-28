@@ -18,6 +18,13 @@ document.ChingShih.ShipManager = (() => {
        */
       _grid = new Map();
    
+      /**
+       * Tracks which cells are used by ships.
+       * [KEY] = cellID, [VAL] = 'true' - if a ship is there, else - 'false
+       * @type {Map.<string, boolean>}
+       */
+      _shipMap = new Map();
+
       /** Stores ship's placeholder cells when the player is choosing a location for his ship. 
        * @type {HTMLDivElement[]} */
       _placeholderShip = [];
@@ -50,10 +57,92 @@ document.ChingShih.ShipManager = (() => {
          return this._grid.get(key);
       }
    
+      /** Save the ship's coordinates to avoid placing other ships on top. */
+      _saveShipLocation(ship) {
+         const cells$ = ship.getCells$();
+         for (const cell$ of cells$) {
+            const { id } = cell$;
+            this._shipMap.set(id, true);
+         }
+      }
+
+      /**
+       * 'true' if a ship already exists at the given coordinates, else - 'false'
+       * @param {number} row 
+       * @param {number} col 
+       */
+      _isCellUsed(row, col) {
+         const cellId = `player-${row}-${col}`;
+         return this._shipMap.get(cellId);
+      }
+
+      /**
+       * Checks the surrounding cells for...
+       * 1) any other ships already placed there
+       * 2) if there are ships - if the current one can fit between it and the wall
+       * ... and if true, returns the available cells$.
+       * @param {number} row Row to check on
+       * @param {number} startingColumn The column from which the search will start
+       * @param {number} shipSize
+       * @returns {Array.<HTMLDivElement>} cells$ if success, else - empty array.
+       */
+      _tryGetShipPlaceholderCells$(row, startingColumn, shipSize) {
+         const columns = [];
+         if (this._isCellUsed(row, startingColumn)) {
+            return columns;
+         }
+         
+         columns.push(startingColumn);
+         let cellsToFill = shipSize - 1; // 1 for the starting cell
+         
+         const CANT_EXPAND = -420;
+         let toLeft = 1;
+         let toRight = 1;
+         while (cellsToFill > 0) {
+            let currentCol = -1;
+
+            if (toLeft !== CANT_EXPAND) {
+               currentCol = startingColumn - toLeft;
+               // Check if reached (the wall/another ship)
+               if (currentCol < 1 || this._isCellUsed(row, currentCol)) {
+                  toLeft = CANT_EXPAND;
+                  continue;
+               }
+               columns.push(currentCol)
+               cellsToFill--;
+               toLeft++;
+               continue;
+            }
+
+            if (toRight !== CANT_EXPAND) {
+               currentCol = startingColumn + toRight;
+               // Check if reached (the wall/another ship)
+               if (currentCol > 10 || this._isCellUsed(row, currentCol)) {
+                  toRight = CANT_EXPAND;
+                  continue;
+               }
+               columns.push(currentCol)
+               cellsToFill--;
+               toRight++;
+               continue;
+            } 
+
+            // If we reached here, it means we can't expand both to the left and right.
+            break;
+         }
+
+         return columns.length !== shipSize ? [] : columns.map(column => this._getCell(row, column));
+      }
+
       /** Updates the DOM to display the current ship's outline as a set and saved ship. */
       placeShip() {
          const ship = takeFirst(this._ships, s => s.isPlaceholder);
-         ship?.markAsPlaced();
+         if (!ship) {
+            return;
+         }
+         
+         ship.markAsPlaced();
+         this._saveShipLocation(ship);
       }
 
       areAllShipsPlaced() {
@@ -66,33 +155,16 @@ document.ChingShih.ShipManager = (() => {
        */
       addShipPlaceholder(cellId) {
          const ship = takeFirst(this._ships, s => !s.isPlaced);
-         let cellsToPlace = ship.size;
 
          const cell$ = this._grid.get(cellId);
          const [row, col] = this._getCellCoordinates(cell$);
-         
-         const placeholderCells$ = [];
-         placeholderCells$.push(this._getCell(row, col));
-         cellsToPlace--;
-         
-         let fromRight = 1;
-         let fromLeft = 1;
-         while (cellsToPlace > 0) {
-            let placeholderCell$ = null;
-            
-            if (col - fromLeft > 0) {
-               placeholderCell$ = this._getCell(row, col - fromLeft);
-               fromLeft++;
-            } else {
-               placeholderCell$ = this._getCell(row, col + fromRight);
-               fromRight++;
-            }
-   
-            placeholderCells$.push(placeholderCell$);
-            cellsToPlace--;
+
+         const cells$ = this._tryGetShipPlaceholderCells$(row, col, ship.size);
+         if (!cells$.length) {
+            return;
          }
 
-         ship.setCells(placeholderCells$);
+         ship.setCells$(cells$);
          ship.markAsPlaceholder();
       }
    
@@ -109,6 +181,7 @@ document.ChingShih.ShipManager = (() => {
                const cellId = `player-${row}-${col}`;
                const cell$ = document.getElementById(cellId);
                this._grid.set(cellId, cell$);
+               this._shipMap.set(cellId, false);
             }
          }
 
