@@ -104,7 +104,11 @@ document.ChingShih.ShipManager = (() => {
             if (toLeft !== CANT_EXPAND) {
                currentCol = startingColumn - toLeft;
                // Check if reached (the wall/another ship)
-               if (currentCol < 1 || this._isCellUsed(row, currentCol)) {
+               if (currentCol < 1 
+                  || this._isCellUsed(row, currentCol)
+                  || this._isCellUsed(row - 1, currentCol) // Check for other ship's padding above
+                  || this._isCellUsed(row + 1, currentCol) // Check for other ship's padding below
+               ) {
                   toLeft = CANT_EXPAND;
                   continue;
                }
@@ -117,7 +121,11 @@ document.ChingShih.ShipManager = (() => {
             if (toRight !== CANT_EXPAND) {
                currentCol = startingColumn + toRight;
                // Check if reached (the wall/another ship)
-               if (currentCol > 10 || this._isCellUsed(row, currentCol)) {
+               if (currentCol > 10
+                  || this._isCellUsed(row, currentCol)
+                  || this._isCellUsed(row - 1, currentCol) // Check for other ship's padding above
+                  || this._isCellUsed(row + 1, currentCol) // Check for other ship's padding below
+               ) {
                   toRight = CANT_EXPAND;
                   continue;
                }
