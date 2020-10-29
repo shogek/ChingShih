@@ -56,3 +56,6 @@ body {
 .cell.ship {
    background-color: tomato;
 }
+.cell.ship-padding {
+   background-color: #ff634778;
+}

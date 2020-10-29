@@ -11,6 +11,8 @@ document.ChingShih.Ship = (() => {
       _isPlaceholder = false;
       /** List of cells$ which the ship occupies in the grid. */
       _cells$ = [];
+      /** List of cells$ which are padded around the ship to prevent other ships from being placed there. */
+      _paddingCells$ = [];
 
       get isPlaceholder() { return this._isPlaceholder; }
       get isPlaced() { return this._isPlaced; }
@@ -25,10 +27,17 @@ document.ChingShih.Ship = (() => {
       }
 
       setCells$(cells$) {
-         this._cells$ = cells$;
+         this._cells$ = [...cells$];
       }
       getCells$() {
-         return this._cells$;
+         return [...this._cells$];
+      }
+
+      setPaddingCells$(cells$) {
+         this._paddingCells$ = [...cells$];
+      }
+      getPaddingCells$() {
+         return [...this._paddingCells$];
       }
 
       /** Updates the DOM to display a ship's outline for placement. */
@@ -54,6 +63,9 @@ document.ChingShih.Ship = (() => {
          for (const cell$ of this._cells$) {
             cell$.classList.remove('placeholder');
             cell$.classList.add('ship');
+         }
+         for (const cell$ of this._paddingCells$) {
+            cell$.classList.add('ship-padding');
          }
       }
    }
