@@ -59,7 +59,7 @@ document.ChingShih.ShipManager = (() => {
    
       /** Save the ship's coordinates to avoid placing other ships on top. */
       _saveShipLocation(ship) {
-         const cells$ = ship.getCells$();
+         const cells$ = [...ship.getCells$(), ...ship.getPaddingCells$()];
          for (const cell$ of cells$) {
             const { id } = cell$;
             this._shipMap.set(id, true);
@@ -91,7 +91,7 @@ document.ChingShih.ShipManager = (() => {
          if (this._isCellUsed(row, startingColumn)) {
             return columns;
          }
-         
+
          columns.push(startingColumn);
          let cellsToFill = shipSize - 1; // 1 for the starting cell
          
@@ -134,6 +134,59 @@ document.ChingShih.ShipManager = (() => {
          return columns.length !== shipSize ? [] : columns.map(column => this._getCell(row, column));
       }
 
+      /**
+       * Pad around the given ship for "breathing room".
+       * @param {Ship} ship Ship to pad around
+       * @returns {Array.<HTMLDivElement>}
+       */
+      _getShipPaddingCells$(ship) {
+         const padding$ = [];
+         const cells$ = ship.getCells$()
+            .sort((cellA$, cellB$) => { // Sort cells from left to right
+               const [, colA] = this._getCellCoordinates(cellA$);
+               const [, colB] = this._getCellCoordinates(cellB$);
+               return colA - colB;
+         });
+         // Add padding above and below throughout the ship's length
+         for (const cell$ of cells$) {
+            const [row, col] = this._getCellCoordinates(cell$);
+            if (row - 1 > 0) { // Ship is not against the top wall
+               padding$.push(this._getCell(row - 1, col));
+            }
+            if (row + 1 < 11) { // Ship is not against the bottom wall
+               padding$.push(this._getCell(row + 1, col));
+            }
+         }
+
+         // Add padding before ship
+         const startCell$ = cells$.slice(0, 1)[0];
+         const [startRow, startCol] = this._getCellCoordinates(startCell$);
+         if (startCol - 1 > 0) { // Ship is not against the left wall
+            padding$.push(this._getCell(startRow, startCol - 1));
+            if (startRow - 1 > 0) { // Ship is not in the top left corner
+               padding$.push(this._getCell(startRow - 1, startCol - 1));
+            }
+            if (startRow + 1 < 11) { // Ship is not in the bottom left corner
+               padding$.push(this._getCell(startRow + 1, startCol - 1));
+            }
+         }
+         
+         // Add padding after ship
+         const endCell$ = cells$.slice(cells$.length - 1, cells$.length)[0];
+         const [endRow, endCol] = this._getCellCoordinates(endCell$);
+         if (endCol + 1 < 11) { // Ship is not against the right wall
+            padding$.push(this._getCell(endRow, endCol + 1));
+            if (endRow - 1 > 0) { // Ship is not in the top right corner
+               padding$.push(this._getCell(endRow - 1, endCol + 1));
+            }
+            if (endRow + 1 < 11) { // Ship is not in the bottom right corner
+               padding$.push(this._getCell(endRow + 1, endCol + 1));
+            }
+         }
+
+         return padding$;
+      }
+
       /** Updates the DOM to display the current ship's outline as a set and saved ship. */
       placeShip() {
          const ship = takeFirst(this._ships, s => s.isPlaceholder);
@@ -141,6 +194,8 @@ document.ChingShih.ShipManager = (() => {
             return;
          }
          
+         const paddingCells$ = this._getShipPaddingCells$(ship);
+         ship.setPaddingCells$(paddingCells$);
          ship.markAsPlaced();
          this._saveShipLocation(ship);
       }
