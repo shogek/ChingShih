@@ -10,6 +10,11 @@ document.ChingShih.ShipManager = (() => {
       },
    } = document.ChingShih
 
+   directions = {
+      VERTICAL: 'Vertical',
+      HORIZONTAL: 'Horizontal',
+   };
+
    return class ShipManager {
       /**
        * Represents a playing side's grid.
@@ -33,6 +38,11 @@ document.ChingShih.ShipManager = (() => {
        * @type {Ship[]} */
       _ships = [];
 
+      _placementDirection = directions.HORIZONTAL;
+
+      constructor() {
+         this._onRightMouseButtonClick = this._onRightMouseButtonClick.bind(this);
+      }
 
       /**
        * Parse a cell's ID to extract row and col.
@@ -81,57 +91,35 @@ document.ChingShih.ShipManager = (() => {
        * 1) any other ships already placed there
        * 2) if there are ships - if the current one can fit between it and the wall
        * ... and if true, returns the available cells$.
-       * @param {number} row Row to check on
-       * @param {number} startingColumn The column from which the search will start
+       * @param {number} row Row from which to start the search
+       * @param {number} col Column from which to start the search
        * @param {number} shipSize
        * @returns {Array.<HTMLDivElement>} cells$ if success, else - empty array.
        */
-      _tryGetShipPlaceholderCells$(row, startingColumn, shipSize) {
-         const columns = [];
-         if (this._isCellUsed(row, startingColumn)) {
-            return columns;
+      _tryGetShipPlaceholderCells$(row, column, shipSize) {
+         if (this._placementDirection === directions.HORIZONTAL) {
+            const cols = new Array(shipSize)
+               .fill(0)
+               .map((_, i) => column + i)
+               .filter(col => col < 11);
+
+            return cols.length !== shipSize || cols.some(col => this._isCellUsed(row, col))
+               ? []
+               : cols.map(col => this._getCell(row, col));
          }
 
-         columns.push(startingColumn);
-         let cellsToFill = shipSize - 1; // 1 for the starting cell
-         
-         const CANT_EXPAND = -420;
-         let toLeft = 1;
-         let toRight = 1;
-         while (cellsToFill > 0) {
-            let currentCol = -1;
+         if (this._placementDirection === directions.VERTICAL) {
+            const rows = new Array(shipSize)
+               .fill(0)
+               .map((_, i) => row + i)
+               .filter(row => row < 11);
 
-            if (toLeft !== CANT_EXPAND) {
-               currentCol = startingColumn - toLeft;
-               // Check if reached (the wall/another ship)
-               if (currentCol < 1 || this._isCellUsed(row, currentCol)) {
-                  toLeft = CANT_EXPAND;
-                  continue;
-               }
-               columns.push(currentCol)
-               cellsToFill--;
-               toLeft++;
-               continue;
-            }
-
-            if (toRight !== CANT_EXPAND) {
-               currentCol = startingColumn + toRight;
-               // Check if reached (the wall/another ship)
-               if (currentCol > 10 || this._isCellUsed(row, currentCol)) {
-                  toRight = CANT_EXPAND;
-                  continue;
-               }
-               columns.push(currentCol)
-               cellsToFill--;
-               toRight++;
-               continue;
-            } 
-
-            // If we reached here, it means we can't expand both to the left and right.
-            break;
+            return rows.length !== shipSize || rows.some(row => this._isCellUsed(row, column))
+               ? []
+               : rows.map(row => this._getCell(row, column));
          }
 
-         return columns.length !== shipSize ? [] : columns.map(column => this._getCell(row, column));
+         throw new Error(`Field (_placementDirection) contains an unknown value of (${this._placementDirection})!`);
       }
 
       /**
@@ -140,51 +128,55 @@ document.ChingShih.ShipManager = (() => {
        * @returns {Array.<HTMLDivElement>}
        */
       _getShipPaddingCells$(ship) {
-         const padding$ = [];
-         const cells$ = ship.getCells$()
-            .sort((cellA$, cellB$) => { // Sort cells from left to right
-               const [, colA] = this._getCellCoordinates(cellA$);
-               const [, colB] = this._getCellCoordinates(cellB$);
-               return colA - colB;
-         });
-         // Add padding above and below throughout the ship's length
-         for (const cell$ of cells$) {
-            const [row, col] = this._getCellCoordinates(cell$);
-            if (row - 1 > 0) { // Ship is not against the top wall
-               padding$.push(this._getCell(row - 1, col));
-            }
-            if (row + 1 < 11) { // Ship is not against the bottom wall
-               padding$.push(this._getCell(row + 1, col));
-            }
+         if (this._placementDirection === directions.HORIZONTAL) {
+            const cells$ = ship.getCells$()
+               .sort((cellA$, cellB$) => { // Sort cells from left to right
+                  const [, colA] = this._getCellCoordinates(cellA$);
+                  const [, colB] = this._getCellCoordinates(cellB$);
+                  return colA - colB;
+            });
+
+            const [row, col] = this._getCellCoordinates(cells$[0]);
+
+            const cols = new Array(ship.size).fill(0).map((_, i) => col + i).filter(col => col > 0 && col < 11);
+            let fromTop$ = row - 1 < 1 ? [] : cols.map(col => this._getCell(row - 1, col));
+            let fromBottom$ = row + 1 > 10 ? [] : cols.map(col => this._getCell(row + 1, col));
+
+            const rows = new Array(3).fill(0).map((_, i) => row - 1 + i).filter(row => row > 0 && row < 11);
+            let fromLeft$ = col - 1 < 1 ? [] : rows.map(row => this._getCell(row, col - 1));
+            let fromRight$ = col + ship.size > 10 ? [] : rows.map(row => this._getCell(row, col + ship.size));
+            return [...fromTop$, ...fromBottom$, ...fromLeft$, ...fromRight$];
          }
 
-         // Add padding before ship
-         const startCell$ = cells$.slice(0, 1)[0];
-         const [startRow, startCol] = this._getCellCoordinates(startCell$);
-         if (startCol - 1 > 0) { // Ship is not against the left wall
-            padding$.push(this._getCell(startRow, startCol - 1));
-            if (startRow - 1 > 0) { // Ship is not in the top left corner
-               padding$.push(this._getCell(startRow - 1, startCol - 1));
-            }
-            if (startRow + 1 < 11) { // Ship is not in the bottom left corner
-               padding$.push(this._getCell(startRow + 1, startCol - 1));
-            }
-         }
-         
-         // Add padding after ship
-         const endCell$ = cells$.slice(cells$.length - 1, cells$.length)[0];
-         const [endRow, endCol] = this._getCellCoordinates(endCell$);
-         if (endCol + 1 < 11) { // Ship is not against the right wall
-            padding$.push(this._getCell(endRow, endCol + 1));
-            if (endRow - 1 > 0) { // Ship is not in the top right corner
-               padding$.push(this._getCell(endRow - 1, endCol + 1));
-            }
-            if (endRow + 1 < 11) { // Ship is not in the bottom right corner
-               padding$.push(this._getCell(endRow + 1, endCol + 1));
-            }
+         if (this._placementDirection === directions.VERTICAL) {
+            const cells$ = ship.getCells$()
+               .sort((cellA$, cellB$) => { // Sort cells from top to bottom
+                  const [rowA, ] = this._getCellCoordinates(cellA$);
+                  const [rowB, ] = this._getCellCoordinates(cellB$);
+                  return rowA - rowB;
+            });
+
+            const [row, col] = this._getCellCoordinates(cells$[0]);
+
+            const rows = new Array(ship.size).fill(0).map((_, i) => row + i).filter(row => row > 0 && row < 11);
+            let fromLeft$ = col - 1 < 1 ? [] : rows.map(row => this._getCell(row, col - 1));
+            let fromRight$ = col + 1 > 10 ? [] : rows.map(row => this._getCell(row, col + 1));
+
+            const cols = new Array(3).fill(0).map((_, i) => col - 1 + i).filter(row => row > 0 && row < 11);
+            let fromTop$ = row - 1 < 1 ? [] : cols.map(col => this._getCell(row - 1, col));
+            let fromBottom$ = row + ship.size > 10 ? [] : cols.map(col => this._getCell(row + ship.size, col));
+            return [...fromTop$, ...fromBottom$, ...fromLeft$, ...fromRight$];
          }
 
-         return padding$;
+         throw new Error(`Field (_placementDirection) contains an unknown value of (${this._placementDirection})!`);
+      }
+
+      _onRightMouseButtonClick(e) {
+         e.preventDefault();
+
+         this._placementDirection = this._placementDirection === directions.HORIZONTAL
+            ? directions.VERTICAL
+            : directions.HORIZONTAL;
       }
 
       /** Updates the DOM to display the current ship's outline as a set and saved ship. */
@@ -248,6 +240,8 @@ document.ChingShih.ShipManager = (() => {
                this._ships.push(ship);
             });
          }
+
+         document.body.addEventListener('contextmenu', this._onRightMouseButtonClick);
       }
    }
 
