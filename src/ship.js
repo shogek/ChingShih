@@ -45,6 +45,7 @@ document.ChingShih.Ship = (() => {
          this._isPlaceholder = true;
          for (const cell$ of this._cells$) {
             cell$.classList.add('placeholder');
+            cell$.classList.add(this.name);
          }
       }
 
@@ -53,6 +54,7 @@ document.ChingShih.Ship = (() => {
          this._isPlaceholder = false;
          for (const cell$ of this._cells$) {
             cell$.classList.remove('placeholder');
+            cell$.classList.remove(this.name);
          }
       }
 
@@ -63,9 +65,11 @@ document.ChingShih.Ship = (() => {
          for (const cell$ of this._cells$) {
             cell$.classList.remove('placeholder');
             cell$.classList.add('ship');
+            cell$.classList.add(this.name);
          }
          for (const cell$ of this._paddingCells$) {
             cell$.classList.add('ship-padding');
+            cell$.classList.add(this.name);
          }
       }
    }

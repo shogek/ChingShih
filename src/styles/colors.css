@@ -1,0 +1,28 @@
+#game-area {
+   background-color: #2e2e2e;
+}
+
+.cell {
+   border-color: rgb(255, 255, 255, 0.2);
+   transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+}
+
+.cell.placeholder {
+   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+}
+
+.ship-padding {
+   background-color: rgb(255, 255, 255, 0.1);
+}
+
+.battleship.placeholder {  background-color: rgb(123, 31, 162, 0.5); }
+.battleship.ship {         background-color: rgb(123, 31, 162); }
+
+.destroyer.placeholder {  background-color:  rgb(211, 47, 47, 0.5); }
+.destroyer.ship {         background-color: rgb(211, 47, 47); }
+
+.submarine.placeholder {  background-color:  rgb(255, 160, 0.5); }
+.submarine.ship {         background-color: rgb(255, 160, 0); }
+
+.patrol.placeholder {     background-color: rgb(255, 235, 59, 0.5); }
+.patrol.ship {            background-color: rgb(255, 235, 59); }
