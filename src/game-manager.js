@@ -33,9 +33,6 @@ document.ChingShih.GameManager = (() => {
          this._onMouseClickCell = this._onMouseClickCell.bind(this);
       }
 
-      _placeEnemyShips() {
-      }
-
       _onMouseEnterCell(e) {
          if (this._gameState === GameStates.PROCESSING) {
             return;
