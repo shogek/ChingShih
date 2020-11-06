@@ -16,8 +16,11 @@ document.ChingShih.GameManager = (() => {
       _playerGrid = new Map();
    
       /** @type {ShipManager} */
-      _shipManager = new ShipManager();
+      _playerShipManager = new ShipManager();
    
+      /** @type {ShipManager} */
+      _enemyShipManager = new ShipManager();
+
       /** @type {GameStates} */
       _gameState = GameStates.NOT_INITIALISED;
    
@@ -36,7 +39,7 @@ document.ChingShih.GameManager = (() => {
          }
    
          this._gameState = GameStates.PROCESSING;
-         this._shipManager.addShipPlaceholder(e.target.id);
+         this._playerShipManager.showShipPlaceholder(e.target.id);
          this._gameState = GameStates.READY;
       }
    
@@ -46,7 +49,7 @@ document.ChingShih.GameManager = (() => {
          }
    
          this._gameState = GameStates.PROCESSING;
-         this._shipManager.removeShipPlaceholder();
+         this._playerShipManager.removeShipPlaceholder();
          this._gameState = GameStates.READY;
       }
    
@@ -56,8 +59,8 @@ document.ChingShih.GameManager = (() => {
          }
    
          this._gameState = GameStates.PROCESSING;
-         this._shipManager.placeShip();
-         if (this._shipManager.areAllShipsPlaced()) {
+         this._playerShipManager.confirmPlaceholderShip();
+         if (this._playerShipManager.areAllShipsPlaced()) {
             this._removeMouseEventListeners();
             this._enableFight();
          }
@@ -92,7 +95,10 @@ document.ChingShih.GameManager = (() => {
             }
          }
    
-         this._shipManager.init();
+         this._playerShipManager.init({ isEnemySide: false });
+
+         this._enemyShipManager.init({ isEnemySide: true });
+         this._enemyShipManager.placeEnemyShips();
    
          this._gameState = GameStates.READY;
          this._playerState = PlayerStates.PLACING_SHIPS;

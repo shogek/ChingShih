@@ -2,18 +2,15 @@ document.ChingShih.ShipManager = (() => {
 
    const {
       Ship,
+      ShipDirections,
       config: {
          shipConfigurations,
       },
       helpers: {
          takeFirst,
       },
-   } = document.ChingShih
+   } = document.ChingShih;
 
-   directions = {
-      VERTICAL: 'Vertical',
-      HORIZONTAL: 'Horizontal',
-   };
 
    return class ShipManager {
       /**
@@ -30,15 +27,23 @@ document.ChingShih.ShipManager = (() => {
        */
       _shipMap = new Map();
 
-      /** Stores ship's placeholder cells when the player is choosing a location for his ship. 
-       * @type {HTMLDivElement[]} */
-      _placeholderShip = [];
-   
+      /** Represents the ship that is currently being placed by the user. */
+      _placeholder = {
+         exists: false,
+         ship: null,
+         /** The ship's starting location */
+         cellId: '',
+      }
+
       /** Stores all the playing side's ships.
        * @type {Ship[]} */
       _ships = [];
 
-      _placementDirection = directions.HORIZONTAL;
+      /** Indicates which side of the game board the 'ShipManager' will manipulate (left vs right). */
+      _isEnemySide = false;
+
+      /** Indicates which direction the current ship is being placed by the user. */
+      _placementDirection = ShipDirections.HORIZONTAL;
 
       constructor() {
          this._onRightMouseButtonClick = this._onRightMouseButtonClick.bind(this);
@@ -63,13 +68,13 @@ document.ChingShih.ShipManager = (() => {
        * @returns {HTMLDivElement} 
        */
       _getCell(row, col) {
-         const key = `player-${row}-${col}`;
+         const key = this._getFormattedCellId(row, col);
          return this._grid.get(key);
       }
    
       /** Save the ship's coordinates to avoid placing other ships on top. */
       _saveShipLocation(ship) {
-         const cells$ = [...ship.getCells$(), ...ship.getPaddingCells$()];
+         const cells$ = [...ship.cells$, ...ship.paddingCells$];
          for (const cell$ of cells$) {
             const { id } = cell$;
             this._shipMap.set(id, true);
@@ -82,7 +87,7 @@ document.ChingShih.ShipManager = (() => {
        * @param {number} col 
        */
       _isCellUsed(row, col) {
-         const cellId = `player-${row}-${col}`;
+         const cellId = this._getFormattedCellId(row, col);
          return this._shipMap.get(cellId);
       }
 
@@ -92,34 +97,34 @@ document.ChingShih.ShipManager = (() => {
        * 2) if there are ships - if the current one can fit between it and the wall
        * ... and if true, returns the available cells$.
        * @param {number} row Row from which to start the search
-       * @param {number} col Column from which to start the search
-       * @param {number} shipSize
+       * @param {number} column Column from which to start the search
+       * @param {Ship} ship Length of the ship
        * @returns {Array.<HTMLDivElement>} cells$ if success, else - empty array.
        */
-      _tryGetShipPlaceholderCells$(row, column, shipSize) {
-         if (this._placementDirection === directions.HORIZONTAL) {
-            const cols = new Array(shipSize)
+      _tryCreateShipPlacementCells$(row, column, ship) {
+         if (ship.direction === ShipDirections.HORIZONTAL) {
+            const cols = new Array(ship.size)
                .fill(0)
                .map((_, i) => column + i)
                .filter(col => col < 11);
 
-            return cols.length !== shipSize || cols.some(col => this._isCellUsed(row, col))
+            return cols.length !== ship.size || cols.some(col => this._isCellUsed(row, col))
                ? []
                : cols.map(col => this._getCell(row, col));
          }
 
-         if (this._placementDirection === directions.VERTICAL) {
-            const rows = new Array(shipSize)
+         if (ship.direction === ShipDirections.VERTICAL) {
+            const rows = new Array(ship.size)
                .fill(0)
                .map((_, i) => row + i)
                .filter(row => row < 11);
 
-            return rows.length !== shipSize || rows.some(row => this._isCellUsed(row, column))
+            return rows.length !== ship.size || rows.some(row => this._isCellUsed(row, column))
                ? []
                : rows.map(row => this._getCell(row, column));
          }
 
-         throw new Error(`Field (_placementDirection) contains an unknown value of (${this._placementDirection})!`);
+         throw new Error(`Function's parameter (ship.direction) contains an unknown value of (${ship.direction})!`);
       }
 
       /**
@@ -128,8 +133,8 @@ document.ChingShih.ShipManager = (() => {
        * @returns {Array.<HTMLDivElement>}
        */
       _getShipPaddingCells$(ship) {
-         if (this._placementDirection === directions.HORIZONTAL) {
-            const cells$ = ship.getCells$()
+         if (ship.direction === ShipDirections.HORIZONTAL) {
+            const cells$ = ship.cells$
                .sort((cellA$, cellB$) => { // Sort cells from left to right
                   const [, colA] = this._getCellCoordinates(cellA$);
                   const [, colB] = this._getCellCoordinates(cellB$);
@@ -148,8 +153,8 @@ document.ChingShih.ShipManager = (() => {
             return [...fromTop$, ...fromBottom$, ...fromLeft$, ...fromRight$];
          }
 
-         if (this._placementDirection === directions.VERTICAL) {
-            const cells$ = ship.getCells$()
+         if (ship.direction === ShipDirections.VERTICAL) {
+            const cells$ = ship.cells$
                .sort((cellA$, cellB$) => { // Sort cells from top to bottom
                   const [rowA, ] = this._getCellCoordinates(cellA$);
                   const [rowB, ] = this._getCellCoordinates(cellB$);
@@ -168,64 +173,136 @@ document.ChingShih.ShipManager = (() => {
             return [...fromTop$, ...fromBottom$, ...fromLeft$, ...fromRight$];
          }
 
-         throw new Error(`Field (_placementDirection) contains an unknown value of (${this._placementDirection})!`);
+         throw new Error(`Field (ship.direction) contains an unknown value of (${ship.direction})!`);
       }
 
       _onRightMouseButtonClick(e) {
          e.preventDefault();
-
-         this._placementDirection = this._placementDirection === directions.HORIZONTAL
-            ? directions.VERTICAL
-            : directions.HORIZONTAL;
-      }
-
-      /** Updates the DOM to display the current ship's outline as a set and saved ship. */
-      placeShip() {
-         const ship = takeFirst(this._ships, s => s.isPlaceholder);
-         if (!ship) {
+         e.stopPropagation();
+         
+         if (!this._placeholder.exists) {
             return;
          }
          
+         const { ship, cellId } = this._placeholder;
+         const newDirection = ship.direction === ShipDirections.HORIZONTAL
+            ? ShipDirections.VERTICAL
+            : ShipDirections.HORIZONTAL;
+
+         ship.setDirection(newDirection);
+         // Recreate the ship to face the new direction
+         this._clearPlaceholderShip();
+         this._savePlaceholderShip(ship, cellId);
+         this._showPlaceholderShip(ship, cellId);
+      }
+
+      _getFormattedCellId(row, col) {
+         return this._isEnemySide
+            ? `enemy-${row}-${col}`
+            : `player-${row}-${col}`;
+      }
+
+      _savePlaceholderShip(ship, cellId) {
+         if (!ship) { throw new Error("Parameter 'ship' is null!"); }
+         if (!cellId) { throw new Error("Parameter 'cellId' is null!"); }
+
+         this._placeholder.ship = ship;
+         this._placeholder.cellId = cellId;
+         this._placeholder.exists = true;
+      }
+
+      _confirmPlaceholderShip(ship) {
          const paddingCells$ = this._getShipPaddingCells$(ship);
          ship.setPaddingCells$(paddingCells$);
          ship.markAsPlaced();
          this._saveShipLocation(ship);
+         this._clearPlaceholderShip();
+      }
+
+      _clearPlaceholderShip() {
+         this._placeholder.ship?.unmarkAsPlaceholder();
+         this._placeholder.ship = undefined;
+         this._placeholder.cellId = '';
+         this._placeholder.exists = false;
+      }
+
+      _showPlaceholderShip(ship, cellId) {
+         const cell$ = this._grid.get(cellId);
+         const [row, col] = this._getCellCoordinates(cell$);
+
+         const cells$ = this._tryCreateShipPlacementCells$(row, col, ship);
+         if (!cells$.length) {
+            this._clearPlaceholderShip();
+            return;
+         }
+
+         ship.setCells$(cells$);
+         ship.markAsPlaceholder();
+         this._savePlaceholderShip(ship, cellId);
+      }
+
+      /** Updates the DOM to display the current ship's outline as a set and saved ship. */
+      confirmPlaceholderShip() {
+         if (this._placeholder.exists) {
+            this._confirmPlaceholderShip(this._placeholder.ship);
+         }
       }
 
       areAllShipsPlaced() {
          return this._ships.filter(s => !s.isPlaced).length < 1;
       }
 
+      placeEnemyShips() {
+         for (const ship of this._ships) {
+            let shipNotPlaced = true;
+            
+            while (shipNotPlaced) {
+               const row = Math.floor(Math.random() * 10) + 1;
+               const col = Math.floor(Math.random() * 10) + 1;
+               const direction = Math.floor(Math.random() * 10) + 1 >= 5 ? ShipDirections.VERTICAL : ShipDirections.HORIZONTAL;
+               ship.setDirection(direction);
+
+               const cells$ = this._tryCreateShipPlacementCells$(row, col, ship);
+               if (cells$.length > 0) {
+                  ship.setCells$(cells$);
+                  this._confirmPlaceholderShip(ship);
+                  ship.hidePadding();
+                  shipNotPlaced = false;
+               }
+            }
+         }
+      }
+
       /**
        * Updates the DOM to display a ship's outline for placement.
        * @param {string} cellId The reference point (ex.: cell, which was hovered over).
        */
-      addShipPlaceholder(cellId) {
-         const ship = takeFirst(this._ships, s => !s.isPlaced);
-
-         const cell$ = this._grid.get(cellId);
-         const [row, col] = this._getCellCoordinates(cell$);
-
-         const cells$ = this._tryGetShipPlaceholderCells$(row, col, ship.size);
-         if (!cells$.length) {
-            return;
-         }
-
-         ship.setCells$(cells$);
-         ship.markAsPlaceholder();
+      showShipPlaceholder(cellId) {
+         const unplacedShip = takeFirst(this._ships, s => !s.isPlaced);
+         this._showPlaceholderShip(unplacedShip, cellId);
       }
    
       /** Updates the DOM to remove the currently shown ship's outline for placement. */
       removeShipPlaceholder() {
-         const ship = takeFirst(this._ships, s => s.isPlaceholder);
-         ship?.unmarkAsPlaceholder();
+         this._clearPlaceholderShip();
       }
    
-      init() {
+      cleanUp() {
+         // TODO: Remove event listener for RMB
+         // TODO: Remove padding cells
+      }
+      
+      /**
+       * Initialize the class.
+       * @param {boolean} isEnemySide Indicates if the class represents the right (enemy's) board  
+       */
+      init({ isEnemySide }) {
+         this._isEnemySide = isEnemySide;
+
          // Create a Map for each cell$
          for (let row = 1; row <= 10; row++) {
             for (let col = 1; col <= 10; col++) {
-               const cellId = `player-${row}-${col}`;
+               const cellId = this._getFormattedCellId(row, col);
                const cell$ = document.getElementById(cellId);
                this._grid.set(cellId, cell$);
                this._shipMap.set(cellId, false);
