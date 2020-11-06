@@ -178,12 +178,12 @@ document.ChingShih.ShipManager = (() => {
       }
 
       _onRightMouseButtonClick(e) {
+         e.preventDefault();
+         e.stopPropagation();
+         
          if (!this._shipBeingPlaced.ship) {
             return;
          }
-
-         e.preventDefault();
-         e.stopPropagation();
          
          const { ship, cellId } = this._shipBeingPlaced;
          const newDirection = ship.direction === ShipDirections.HORIZONTAL
@@ -209,7 +209,7 @@ document.ChingShih.ShipManager = (() => {
          if (!aShip) {
             return;
          }
-         
+
          const paddingCells$ = this._getShipPaddingCells$(aShip);
          aShip.setPaddingCells$(paddingCells$);
          aShip.markAsPlaced();
@@ -249,20 +249,20 @@ document.ChingShih.ShipManager = (() => {
        * @param {string} cellId The reference point (ex.: cell, which was hovered over).
        */
       showShipPlaceholder(cellId) {
-         if (!this._shipBeingPlaced.ship) {
-            this._shipBeingPlaced.ship = takeFirst(this._ships, s => !s.isPlaced);
-         }
+         const ship = this._shipBeingPlaced.ship ?? takeFirst(this._ships, s => !s.isPlaced);
 
          const cell$ = this._grid.get(cellId);
          const [row, col] = this._getCellCoordinates(cell$);
 
-         this._shipBeingPlaced.cellId = cellId;
-
-         const cells$ = this._tryCreateShipPlacementCells$(row, col, this._shipBeingPlaced.ship);
+         const cells$ = this._tryCreateShipPlacementCells$(row, col, ship);
          if (!cells$.length) {
+            this._shipBeingPlaced.ship = undefined;
+            this._shipBeingPlaced.cellId = '';
             return;
          }
 
+         this._shipBeingPlaced.ship = ship;
+         this._shipBeingPlaced.cellId = cellId;
          this._shipBeingPlaced.ship.setCells$(cells$);
          this._shipBeingPlaced.ship.markAsPlaceholder();
       }
@@ -274,6 +274,7 @@ document.ChingShih.ShipManager = (() => {
          }
          
          this._shipBeingPlaced.ship.unmarkAsPlaceholder();
+         this._shipBeingPlaced.ship = undefined;
          this._shipBeingPlaced.cellId = '';
       }
    
