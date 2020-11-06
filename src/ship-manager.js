@@ -27,14 +27,13 @@ document.ChingShih.ShipManager = (() => {
        */
       _shipMap = new Map();
 
-      /** Stores ship's placeholder cells when the player is choosing a location for his ship. 
-       * @type {Ship} */
-      _currentPlaceholderShip = null;
-   
-      _shipBeingPlaced = {
+      /** Represents the ship that is currently being placed by the user. */
+      _placeholder = {
+         exists: false,
          ship: null,
+         /** The ship's starting location */
          cellId: '',
-      };
+      }
 
       /** Stores all the playing side's ships.
        * @type {Ship[]} */
@@ -181,20 +180,20 @@ document.ChingShih.ShipManager = (() => {
          e.preventDefault();
          e.stopPropagation();
          
-         if (!this._shipBeingPlaced.ship) {
+         if (!this._placeholder.exists) {
             return;
          }
          
-         const { ship, cellId } = this._shipBeingPlaced;
+         const { ship, cellId } = this._placeholder;
          const newDirection = ship.direction === ShipDirections.HORIZONTAL
             ? ShipDirections.VERTICAL
             : ShipDirections.HORIZONTAL;
 
          ship.setDirection(newDirection);
-         this.removeShipPlaceholder();
-         this._shipBeingPlaced.ship = ship;
-         this._shipBeingPlaced.cellId = cellId;
-         this.showShipPlaceholder(cellId);
+         // Recreate the ship to face the new direction
+         this._clearPlaceholderShip();
+         this._savePlaceholderShip(ship, cellId);
+         this._showPlaceholderShip(ship, cellId);
       }
 
       _getFormattedCellId(row, col) {
@@ -203,20 +202,50 @@ document.ChingShih.ShipManager = (() => {
             : `player-${row}-${col}`;
       }
 
-      /** Updates the DOM to display the current ship's outline as a set and saved ship. */
-      placeShip(ship) {
-         const aShip = ship ?? this._shipBeingPlaced.ship;
-         if (!aShip) {
+      _savePlaceholderShip(ship, cellId) {
+         if (!ship) { throw new Error("Parameter 'ship' is null!"); }
+         if (!cellId) { throw new Error("Parameter 'cellId' is null!"); }
+
+         this._placeholder.ship = ship;
+         this._placeholder.cellId = cellId;
+         this._placeholder.exists = true;
+      }
+
+      _confirmPlaceholderShip(ship) {
+         const paddingCells$ = this._getShipPaddingCells$(ship);
+         ship.setPaddingCells$(paddingCells$);
+         ship.markAsPlaced();
+         this._saveShipLocation(ship);
+         this._clearPlaceholderShip();
+      }
+
+      _clearPlaceholderShip() {
+         this._placeholder.ship?.unmarkAsPlaceholder();
+         this._placeholder.ship = undefined;
+         this._placeholder.cellId = '';
+         this._placeholder.exists = false;
+      }
+
+      _showPlaceholderShip(ship, cellId) {
+         const cell$ = this._grid.get(cellId);
+         const [row, col] = this._getCellCoordinates(cell$);
+
+         const cells$ = this._tryCreateShipPlacementCells$(row, col, ship);
+         if (!cells$.length) {
+            this._clearPlaceholderShip();
             return;
          }
 
-         const paddingCells$ = this._getShipPaddingCells$(aShip);
-         aShip.setPaddingCells$(paddingCells$);
-         aShip.markAsPlaced();
-         this._saveShipLocation(aShip);
+         ship.setCells$(cells$);
+         ship.markAsPlaceholder();
+         this._savePlaceholderShip(ship, cellId);
+      }
 
-         this._shipBeingPlaced.ship = null;
-         this._shipBeingPlaced.cellId = '';
+      /** Updates the DOM to display the current ship's outline as a set and saved ship. */
+      confirmPlaceholderShip() {
+         if (this._placeholder.exists) {
+            this._confirmPlaceholderShip(this._placeholder.ship);
+         }
       }
 
       areAllShipsPlaced() {
@@ -236,7 +265,7 @@ document.ChingShih.ShipManager = (() => {
                const cells$ = this._tryCreateShipPlacementCells$(row, col, ship);
                if (cells$.length > 0) {
                   ship.setCells$(cells$);
-                  this.placeShip(ship);
+                  this._confirmPlaceholderShip(ship);
                   ship.hidePadding();
                   shipNotPlaced = false;
                }
@@ -249,33 +278,13 @@ document.ChingShih.ShipManager = (() => {
        * @param {string} cellId The reference point (ex.: cell, which was hovered over).
        */
       showShipPlaceholder(cellId) {
-         const ship = this._shipBeingPlaced.ship ?? takeFirst(this._ships, s => !s.isPlaced);
-
-         const cell$ = this._grid.get(cellId);
-         const [row, col] = this._getCellCoordinates(cell$);
-
-         const cells$ = this._tryCreateShipPlacementCells$(row, col, ship);
-         if (!cells$.length) {
-            this._shipBeingPlaced.ship = undefined;
-            this._shipBeingPlaced.cellId = '';
-            return;
-         }
-
-         this._shipBeingPlaced.ship = ship;
-         this._shipBeingPlaced.cellId = cellId;
-         this._shipBeingPlaced.ship.setCells$(cells$);
-         this._shipBeingPlaced.ship.markAsPlaceholder();
+         const unplacedShip = takeFirst(this._ships, s => !s.isPlaced);
+         this._showPlaceholderShip(unplacedShip, cellId);
       }
    
       /** Updates the DOM to remove the currently shown ship's outline for placement. */
       removeShipPlaceholder() {
-         if (!this._shipBeingPlaced.ship) {
-            return;
-         }
-         
-         this._shipBeingPlaced.ship.unmarkAsPlaceholder();
-         this._shipBeingPlaced.ship = undefined;
-         this._shipBeingPlaced.cellId = '';
+         this._clearPlaceholderShip();
       }
    
       cleanUp() {
@@ -284,8 +293,8 @@ document.ChingShih.ShipManager = (() => {
       }
       
       /**
-       * TODO
-       * @param {boolean} isEnemySide indicates TODO 
+       * Initialize the class.
+       * @param {boolean} isEnemySide Indicates if the class represents the right (enemy's) board  
        */
       init({ isEnemySide }) {
          this._isEnemySide = isEnemySide;

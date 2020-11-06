@@ -62,7 +62,7 @@ document.ChingShih.GameManager = (() => {
          }
    
          this._gameState = GameStates.PROCESSING;
-         this._playerShipManager.placeShip();
+         this._playerShipManager.confirmPlaceholderShip();
          if (this._playerShipManager.areAllShipsPlaced()) {
             this._removeMouseEventListeners();
             this._enableFight();
