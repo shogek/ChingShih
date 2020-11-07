@@ -21,7 +21,7 @@
 .destroyer-placeholder {  background-color:  rgb(211, 47, 47, 0.5); }
 .destroyer-ship {         background-color: rgb(211, 47, 47); }
 
-.submarine-placeholder {  background-color:  rgb(255, 160, 0.5); }
+.submarine-placeholder {  background-color:  rgb(255, 160, 0, 0.5); }
 .submarine-ship {         background-color: rgb(255, 160, 0); }
 
 .patrol-placeholder {     background-color: rgb(255, 235, 59, 0.5); }
