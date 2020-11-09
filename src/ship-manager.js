@@ -46,7 +46,7 @@ document.ChingShih.ShipManager = (() => {
       _placementDirection = ShipDirections.HORIZONTAL;
 
       constructor() {
-         this._onRightMouseButtonClick = this._onRightMouseButtonClick.bind(this);
+         this._onToggleShipPlacementDirection = this._onToggleShipPlacementDirection.bind(this);
       }
 
       /**
@@ -176,7 +176,7 @@ document.ChingShih.ShipManager = (() => {
          throw new Error(`Field (ship.direction) contains an unknown value of (${ship.direction})!`);
       }
 
-      _onRightMouseButtonClick(e) {
+      _onToggleShipPlacementDirection(e) {
          e.preventDefault();
          e.stopPropagation();
          
@@ -185,11 +185,11 @@ document.ChingShih.ShipManager = (() => {
          }
          
          const { ship, cellId } = this._placeholder;
-         const newDirection = ship.direction === ShipDirections.HORIZONTAL
+         this._placementDirection = this._placementDirection === ShipDirections.HORIZONTAL
             ? ShipDirections.VERTICAL
             : ShipDirections.HORIZONTAL;
 
-         ship.setDirection(newDirection);
+         ship.setDirection(this._placementDirection);
          // Recreate the ship to face the new direction
          this._clearPlaceholderShip();
          this._savePlaceholderShip(ship, cellId);
@@ -229,6 +229,9 @@ document.ChingShih.ShipManager = (() => {
       _showPlaceholderShip(ship, cellId) {
          const cell$ = this._grid.get(cellId);
          const [row, col] = this._getCellCoordinates(cell$);
+
+         // Use the user's preferred direction
+         ship.setDirection(this._placementDirection);
 
          const cells$ = this._tryCreateShipPlacementCells$(row, col, ship);
          if (!cells$.length) {
@@ -318,7 +321,7 @@ document.ChingShih.ShipManager = (() => {
             });
          }
 
-         document.body.addEventListener('contextmenu', this._onRightMouseButtonClick);
+         document.body.addEventListener('contextmenu', this._onToggleShipPlacementDirection);
       }
    }
 
