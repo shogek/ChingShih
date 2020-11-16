@@ -1,9 +1,12 @@
-document.ChingShih.GameManager = (() => {
+document.ChingShih.managers.GameManager = (() => {
 
    const {
       GameStates,
       PlayerStates,
-      ShipManager,
+      managers: {
+         ShipManager,
+         MessageManager,
+      }
    } = document.ChingShih;
 
    
@@ -15,6 +18,12 @@ document.ChingShih.GameManager = (() => {
        */
       _playerGrid = new Map();
    
+      /** @type {MessageManager} */
+      _playerMessageManager = new MessageManager();
+
+      /** @type {MessageManager} */
+      _enemyMessageManager = new MessageManager();
+
       /** @type {ShipManager} */
       _playerShipManager = new ShipManager();
    
@@ -94,9 +103,12 @@ document.ChingShih.GameManager = (() => {
                this._playerGrid.set(cellId, cell$);
             }
          }
-   
-         this._playerShipManager.init({ isEnemySide: false });
 
+         this._playerMessageManager.init({ containerElementId: 'player-grid' });
+         this._enemyMessageManager.init({ containerElementId: 'enemy-grid' });
+         this._enemyMessageManager.show({ text: 'place your ships' });
+
+         this._playerShipManager.init({ isEnemySide: false });
          this._enemyShipManager.init({ isEnemySide: true });
          this._enemyShipManager.placeEnemyShips();
    

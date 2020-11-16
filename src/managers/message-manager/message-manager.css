@@ -1,0 +1,22 @@
+.message-manager-container {
+   position: absolute;
+   height: 100%;
+   width: 100%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background-color: var(--background-color);
+}
+
+.message-manager-container[hidden] {
+   display: none;
+}
+
+.message-manager-container .message-screen {
+   color: white;
+   font-family: monospace;
+   text-transform: uppercase;
+   position: relative;
+   text-align: center;
+   font-size: 14em;
+}

@@ -1,10 +1,6 @@
 (() => {
 
-   const {
-      GameManager,
-   } = document.ChingShih;
-
-   const gameManager = new GameManager();
+   const gameManager = new document.ChingShih.managers.GameManager();
    gameManager.init();
 
 })();
