@@ -7,6 +7,7 @@
 
    <link rel="stylesheet" type="text/css" href="./src/styles/colors.css"/>
    <link rel="stylesheet" type="text/css" href="index.css"/>
+   <link rel="stylesheet" type="text/css" href="./src/managers/message-manager/message-manager.css"/>
 </head>
 <body>
    <div id="game-area">
@@ -277,6 +278,7 @@
 
    <script>
       document.ChingShih = {};
+      document.ChingShih.managers = {};
       document.ChingShih.config = {};
       document.ChingShih.helpers = {};
    </script>
@@ -284,10 +286,11 @@
    <script defer src="./src/ship-directions.enum.js"></script>
    <script defer src="./src/config/ship-configurations.js"></script>
    <script defer src="./src/ship.js"></script>
-   <script defer src="./src/ship-manager.js"></script>
+   <script defer src="./src/managers/ship-manager.js"></script>
+   <script defer src="./src/managers/message-manager/message-manager.js"></script>
    <script defer src="./src/player-states.enum.js"></script>
    <script defer src="./src/game-states.enum.js"></script>
-   <script defer src="./src/game-manager.js"></script>
+   <script defer src="./src/managers/game-manager.js"></script>
    <script defer src="./index.js"></script>
 </body>
 </html>

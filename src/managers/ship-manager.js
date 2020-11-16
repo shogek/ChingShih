@@ -1,4 +1,4 @@
-document.ChingShih.ShipManager = (() => {
+document.ChingShih.managers.ShipManager = (() => {
 
    const {
       Ship,

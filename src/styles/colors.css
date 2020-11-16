@@ -1,5 +1,9 @@
+:root {
+   --background-color: #2e2e2e;
+}
+
 #game-area {
-   background-color: #2e2e2e;
+   background-color: var(--background-color);
 }
 
 .cell {
